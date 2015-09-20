@@ -360,7 +360,7 @@ void tally_local_node(void)
 
 		for (unsigned c = 0; c < node->ht[i].cores; c++) {
 			node->ht[i].apicid_orig[c] = post_apic_mapping[tot_cores + c];
-			node->ht[i].apicid[c] = (remote_io ? 0x100 : 0) + (dnc_node_count << 7) + i * 16 + c;
+			node->ht[i].apicid[c] = (remote_io ? 0x100 : 0) + (dnc_node_count << 8) + i * 16 + c;
 		}
 
 		tot_cores += node->ht[i].cores;
@@ -511,7 +511,7 @@ static bool tally_remote_node(const uint16_t sci)
 
 		for (unsigned c = 0; c < node->ht[i].cores; c++) {
 			node->ht[i].apicid_orig[c] = post_apic_mapping[tot_cores + c];
-			node->ht[i].apicid[c] = (remote_io ? 0x100 : 0) + (dnc_node_count << 7) + i * 16 + c;
+			node->ht[i].apicid[c] = (remote_io ? 0x100 : 0) + (dnc_node_count << 8) + i * 16 + c;
 		}
 
 		tot_cores += node->ht[i].cores;
