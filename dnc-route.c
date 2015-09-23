@@ -41,8 +41,7 @@ static inline uint8_t _load_balance(uint8_t dim, sci_t src, sci_t dst)
 {
 #if defined(ROUTING_PAIR)
 	/* Pair-wise load-balancing */
-	return ((dst & 0xf) + ((dst >> 4) & 0xf) + ((dst >> 8) & 0xf) +
-		(src & 0xf) + ((src >> 4) & 0xf) + ((src >> 8) & 0xf)) & 1;
+	return ((src & 0xf) + ((src >> 4) & 0xf) + ((src >> 8) & 0xf)) & 1;
 #else
 	sci_t src2 = src >> (dim * 4);
 	sci_t dst2 = dst >> (dim * 4);
