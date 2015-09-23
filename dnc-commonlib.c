@@ -2646,6 +2646,10 @@ static void platform_quirks(void)
 		if (!strcmp(product, acpi_blacklist[i])) {
 			printf(" (acpi quirk)");
 			handover_acpi = 1;
+
+			if (strcmp(biosdate, "09/14/2015"))
+				warning("\nH8QGL BIOS DS3.5 914 is recommended for optimal behaviour");
+
 			break;
 		}
 	}
