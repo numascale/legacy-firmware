@@ -2031,9 +2031,9 @@ static void setup_mc4_thresholds(void)
 	/* Ensure MCEs aren't redirected into SMIs */
 	wrmsr(MSR_MCE_REDIR, 0);
 
-	/* Set McStatusWrEn in HWCR first or we might get a GPF */
+	/* Set McStatusWrEn in HWCR first or we might get a GPF, enable userspace monitor-wait */
 	msr = rdmsr(MSR_HWCR);
-	msr |= 1ULL << 18;
+	msr |= (1ULL << 18) | (1ULL << 10);
 	wrmsr(MSR_HWCR, msr);
 	*REL64(new_hwcr_msr) = msr & ~(1ULL << 17); /* Don't let the Wrap32Dis bit follow through to other cores */
 
