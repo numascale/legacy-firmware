@@ -77,7 +77,7 @@ uint8_t router0(sci_t src, const int node)
 	}
 
 	int out = dim * 2 + 1;
-	out += _load_balance(dim, src, dst);
+	out += (src2 ^ dst2) & 0x1; /* Load balance pairs */
 	return out;
 }
 
