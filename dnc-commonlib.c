@@ -33,6 +33,10 @@
 #include "dnc-maps.h"
 #include "ddr_spd.h"
 
+#include "interface/mctr_define_register_C.h"
+#include "interface/regconfig_200_cl4_bl4_genericrdimm.h"
+
+#define SCALAR 16
 #define IOAPIC_VECTORS 24
 
 IMPORT_RELOCATED(cpu_status);
@@ -269,11 +273,6 @@ static void read_spd_info(const bool cdata, struct dimm_config *dimm)
 		fatal("Unsupported %s DIMM size of %dMB", cdata ? "CData" : "MCTag", 1 << (addr_bits - 17));
 	}
 }
-
-#include "../interface/mctr_define_register_C.h"
-#include "../interface/regconfig_200_cl4_bl4_genericrdimm.h"
-
-#define SCALAR 16
 
 uint32_t clocks(const uint16_t raw, int div)
 {

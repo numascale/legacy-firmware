@@ -26,7 +26,7 @@
 #include "dnc-commonlib.h"
 #include "dnc-bootloader.h"
 
-#include "../interface/mctr_define_register_C.h"
+#include "interface/mctr_define_register_C.h"
 
 static void maint_wrmem(int cdata, uint32_t addr, uint32_t data)
 {

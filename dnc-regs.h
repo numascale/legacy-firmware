@@ -18,6 +18,6 @@
 #ifndef __DNC_REGS
 #define __DNC_REGS 1
 
-#include "../interface/numachip-defines.h"
+#include "interface/numachip-defines.h"
 
 #endif

@@ -1,4 +1,4 @@
-IFACEPATH := ../interface
+IFACEPATH := interface
 IFACEDEPS := $(IFACEPATH)/numachip-defines.h $(IFACEPATH)/numachip-autodefs.h
 UCODEDEPS := $(IFACEPATH)/numachip-mseq.h
 CFLAGS    := -I$(IFACEPATH)
@@ -99,11 +99,11 @@ dnc-bootloader.o: dnc-bootloader.c dnc-bootloader.h $(IFACEDEPS) dnc-regs.h \
 
 dnc-e820-handler.o: dnc-defs.h
 
-dnc-commonlib.o: dnc-commonlib.c dnc-commonlib.h dnc-bootloader.h dnc-devices.h dnc-monitor.h dnc-escrow.h dnc-trace.h dnc-access.h ../interface/regconfig_200_cl4_bl4_genericrdimm.h ../interface/mctr_define_register_C.h ddr_spd.h
+dnc-commonlib.o: dnc-commonlib.c dnc-commonlib.h dnc-bootloader.h dnc-devices.h dnc-monitor.h dnc-escrow.h dnc-trace.h dnc-access.h $(IFACEPATH)/regconfig_200_cl4_bl4_genericrdimm.h $(IFACEPATH)/mctr_define_register_C.h ddr_spd.h
 
 ddr_spd.o: ddr_spd.c dnc-commonlib.h ddr_spd.h
 
-dnc-dimmtest.o: dnc-dimmtest.c dnc-commonlib.h dnc-access.h ../interface/mctr_define_register_C.h
+dnc-dimmtest.o: dnc-dimmtest.c dnc-commonlib.h dnc-access.h $(IFACEPATH)/mctr_define_register_C.h
 
 dnc-config.o: dnc-config.c dnc-config.h $(mjson_dir)/src/json.h
 
@@ -171,7 +171,7 @@ test-routing.o: test-routing.c $(IFACEDEPS) dnc-commonlib.h dnc-devices.h dnc-mo
 test-json.o: $(mjson_dir)/src/json.c
 	$(CXX) $(COPT) -c $< -o $@
 
-dnc-test-commonlib.o: dnc-commonlib.c dnc-commonlib.h dnc-devices.h dnc-monitor.h dnc-escrow.h dnc-trace.h ../interface/regconfig_200_cl4_bl4_genericrdimm.h
+dnc-test-commonlib.o: dnc-commonlib.c dnc-commonlib.h dnc-devices.h dnc-monitor.h dnc-escrow.h dnc-trace.h $(IFACEPATH)/regconfig_200_cl4_bl4_genericrdimm.h
 	$(CXX) $(COPT) -c $< -o $@
 
 dnc-test-masterlib.o: dnc-masterlib.c $(UCODEDEPS) dnc-commonlib.h dnc-devices.h dnc-monitor.h dnc-escrow.h dnc-trace.h dnc-masterlib.h dnc-mmio.h dnc-maps.h dnc-access.h

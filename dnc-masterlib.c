@@ -34,7 +34,7 @@ extern "C" {
 #include "dnc-masterlib.h"
 #include "dnc-maps.h"
 
-#include "../interface/numachip-mseq.h"
+#include "interface/numachip-mseq.h"
 
 #define SIG_CALL         0x0018029b
 #define SIG_CALLRET      0x00140184
