@@ -107,7 +107,7 @@ public:
 			if (disable_smm && orig_e820_map[i].base == old_mcfg_base && orig_e820_map[i].length >= old_mcfg_len)
 				continue;
 
-			if (orig_e820_map[i].type == 2 && orig_e820_map[i].base >= next && orig_e820_map[i].base <= 0xffffffff) {
+			if (orig_e820_map[i].type == E820_RESERVED && orig_e820_map[i].base >= next && orig_e820_map[i].base <= 0xffffffff) {
 				uint32_t limit = orig_e820_map[i].base + orig_e820_map[i].length - 1;
 				printf("- excluding 0x%08llx:0x%08x\n", orig_e820_map[i].base, limit);
 				exclude(orig_e820_map[i].base, limit);
@@ -383,8 +383,8 @@ public:
 		if (node->sci != local_info->sci) {
 			if (io_bars.used == 0 || io_cur == io_start ||
 			  (pbus == 0 && pdev == 0 && pfn == 0)) {
-				dnc_write_conf(node->sci, pbus, pdev, pfn, 0x1c, 0xf0);
-				dnc_write_conf(node->sci, pbus, pdev, pfn, 0x30, 0);
+				dnc_write_conf(node->sci, pbus, pdev, pfn, 0x1c, 0x00ff);
+				dnc_write_conf(node->sci, pbus, pdev, pfn, 0x30, 0x0000ffff);
 			} else {
 				uint32_t val = ((io_cur - 1) & 0xf000) | ((io_start  >> 8) & 0xf0);
 				dnc_write_conf(node->sci, pbus, pdev, pfn, 0x1c, val);
@@ -394,7 +394,7 @@ public:
 
 			if (mmio32_bars.used == 0 || map32->next == mmio32_start ||
 			  (pbus == 0 && pdev == 0 && pfn == 0))
-				dnc_write_conf(node->sci, pbus, pdev, pfn, 0x20, 0x0000fffff);
+				dnc_write_conf(node->sci, pbus, pdev, pfn, 0x20, 0x0000ffff);
 			else {
 				uint32_t val = (mmio32_start >> 16) | ((map32->next - 1) & 0xffff0000);
 				dnc_write_conf(node->sci, pbus, pdev, pfn, 0x20, val);
@@ -403,7 +403,7 @@ public:
 			if (mmio64_bars.used == 0 || mmio64_cur == mmio64_start ||
 			  (pbus == 0 && pdev == 0 && pfn == 0)) {
 				dnc_write_conf(node->sci, pbus, pdev, pfn, 0x24, 0x0000ffff);
-				dnc_write_conf(node->sci, pbus, pdev, pfn, 0x28, 0x00000000);
+				dnc_write_conf(node->sci, pbus, pdev, pfn, 0x28, 0xffffffff);
 				dnc_write_conf(node->sci, pbus, pdev, pfn, 0x2c, 0x00000000);
 			} else {
 				uint32_t val = (mmio64_start >> 16) | ((mmio64_cur - 1) & 0xffff0000);
@@ -596,13 +596,11 @@ void setup_mmio(void) {
 
 	uint64_t tom = rdmsr(MSR_TOPMEM);
 
-	/* Program IOAPIC address */
+	/* Disable IOAPIC and memory decode*/
 	foreach_slave_nodes(node) {
-		/* Disable IOAPIC memory decode */
 		uint32_t val = dnc_read_conf(node->sci, 0, 0x14, 0, 0x64);
 		dnc_write_conf(node->sci, 0, 0x14, 0, 0x64, val & ~(1 << 3));
 
-		/* Disable IOAPIC */
 		ioh_ioapicind_write(node->sci, 0, 0);
 	}
 
