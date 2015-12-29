@@ -1771,10 +1771,10 @@ static int ht_fabric_fixup(void)
 	/* Check if already fully initialised */
 	val = cht_read_conf(nc_ht, 0, H2S_CSR_F0_CHTX_CPU_COUNT);
 	if (val) {
-		error("NumaChip already setup; check boot configuration for target '%s'", next_label);
+		error("NumaConnect already setup; check boot configuration for target '%s'", next_label);
 		printf("Retrying boot in 5s...");
 		udelay(5E6);
-		exit(0);
+		return -2;
 	}
 
 	val = cht_read_conf(0, FUNC0_HT, 0x60);
@@ -2689,7 +2689,7 @@ void check(const node_info_t *node)
 int dnc_init_bootloader()
 {
 	uint32_t val;
-	int i, ht_id;
+	int i;
 
 	platform_quirks();
 
@@ -2697,7 +2697,9 @@ int dnc_init_bootloader()
 	if (handover_acpi)
 		stop_acpi();
 
-	ht_id = ht_fabric_fixup();
+	int ht_id = ht_fabric_fixup();
+	if (ht_id == -2) // already initialised
+		return -2;
 
 	/* Indicate immediate jump to next-label (-2) if init-only is also given */
 	if (disable_nc && init_only)
