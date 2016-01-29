@@ -2644,18 +2644,20 @@ static void nc_start(void)
 			continue;
 
 		if (name_matching)
-			printf("Remote node: <%s> sciid: 0x%03x, partition: %d, osc: %d\n",
+			printf("Remote node: <%s> sciid 0x%03x, partition %u, osc %u, failed %u\n",
 			       cfg_nodelist[i].desc,
 			       cfg_nodelist[i].sci,
 			       cfg_nodelist[i].partition,
-			       cfg_nodelist[i].osc);
+			       cfg_nodelist[i].osc,
+			       cfg_nodelist[i].failed);
 		else
-			printf("Remote node: <%s> uuid: %08X, sciid: 0x%03x, partition: %d, osc: %d\n",
+			printf("Remote node: <%s> uuid %08X, sciid 0x%03x, partition %u, osc %u, failed %u\n",
 			       cfg_nodelist[i].desc,
 			       cfg_nodelist[i].uuid,
 			       cfg_nodelist[i].sci,
 			       cfg_nodelist[i].partition,
-			       cfg_nodelist[i].osc);
+			       cfg_nodelist[i].osc,
+			       cfg_nodelist[i].failed);
 	}
 
 	adjust_oscillator(local_info->osc);
@@ -2686,6 +2688,16 @@ static void nc_start(void)
 		wait_for_slaves(local_info, part);
 	else
 		wait_for_master(local_info, part);
+
+	if (local_info->failed) {
+		printf(BANNER "\n\nThis server '%s' is unavailable as part of a %d-server NumaConnect system; refer to the console on server '%s'\n",
+		       local_info->desc, cfg_nodes, get_master_name(part->master));
+
+		while (1) {
+			cli();
+			asm volatile("hlt" ::: "memory");
+		}
+	}
 
 	/* Must run after SCI is operational */
 	local_chipset_fixup(part->master == local_info->sci || local_info->sync_only);

@@ -37,6 +37,8 @@ struct node_info {
 	uint32_t osc;
 	char desc[32];
 	bool sync_only;
+	bool failed;        /* Hardware failure, so route around */
+	bool unavailable;   /* Unusable as not fully routable */
 };
 
 struct part_info {

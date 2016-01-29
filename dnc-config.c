@@ -187,6 +187,11 @@ static bool parse_json(json_t *root)
 		else
 			cfg_nodelist[i].sync_only = 0;
 
+		if (parse_json_num(obj, "failed", &val, 1))
+			cfg_nodelist[i].failed = val;
+		else
+			cfg_nodelist[i].failed = 0;
+
 		/* Validate SCI ID */
 		for (unsigned axis = 0; axis < 3; axis++)
 			if (!cfg_fabric.size[axis] && (cfg_nodelist[i].sci >> (axis * 4)) & 0xf)
@@ -268,10 +273,10 @@ bool parse_config_file(char *data)
 	       cfg_fabric.size[0], cfg_fabric.size[1], cfg_fabric.size[2]);
 
 	for (i = 0; i < cfg_nodes; i++)
-		printf("Node %d: <%s> uuid: %08X, sciid: 0x%03x, partition: %d, osc: %d, sync-only: %d\n",
+		printf("Node %d: <%s> uuid %08X, sciid 0x%03x, partition %u, osc %u, sync-only %u, failed %u\n",
 		       i, cfg_nodelist[i].desc, cfg_nodelist[i].uuid,
 		       cfg_nodelist[i].sci, cfg_nodelist[i].partition,
-		       cfg_nodelist[i].osc, cfg_nodelist[i].sync_only);
+		       cfg_nodelist[i].osc, cfg_nodelist[i].sync_only, cfg_nodelist[i].failed);
 
 	for (i = 0; i < cfg_partitions; i++)
 		printf("Partition %d: master: 0x%03x, builder: 0x%03x\n",

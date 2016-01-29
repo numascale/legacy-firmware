@@ -37,7 +37,6 @@
 
 int cht_config_use_extd_addressing = 0;
 int lirq_nest = 0;
-bool test_manufacture;
 uint64_t dnc_csr_base = DEF_DNC_CSR_BASE;
 uint64_t dnc_csr_lim = DEF_DNC_CSR_LIM;
 
@@ -53,10 +52,6 @@ static int cfgfd[32][8] = {
 	{0, 0, 0, 0, 0, 0, 0, 0}, {0, 0, 0, 0, 0, 0, 0, 0}, {0, 0, 0, 0, 0, 0, 0, 0}, {0, 0, 0, 0, 0, 0, 0, 0},
 	{0, 0, 0, 0, 0, 0, 0, 0}, {0, 0, 0, 0, 0, 0, 0, 0}, {0, 0, 0, 0, 0, 0, 0, 0}, {0, 0, 0, 0, 0, 0, 0, 0}
 };
-
-void broadcast_error(const bool persistent, const char *format, ...)
-{
-}
 
 static inline int getdevmemfd(void)
 {

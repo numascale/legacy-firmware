@@ -20,7 +20,44 @@
 
 #include "dnc-bootloader.h"
 
+#define MAXPATH (16 + 16 + 16)
+#define XBAR_COST 1
+#define XBAR_USAGE_COST 1
+#define LC_COST 1
+#define LC_USAGE_COST 1
+
 typedef uint8_t (*router_t)(sci_t, const int);
+
+class Router {
+	bool lcs_disallowed[4096][6];
+	bool finished[4096][4096];
+	unsigned xbar_usage[4096]; // only used when changing rings
+	unsigned lc_usage[4096][6]; // send buffering
+	uint8_t route[MAXPATH], bestroute[MAXPATH];
+	uint8_t possible_lcs;
+	unsigned bestcost;
+	sci_t src, dst;
+	sci_t local_sci;
+
+	void find(const sci_t pos, unsigned cost, const unsigned offset, const uint8_t available_lcs);
+	void strip(const sci_t sci, const sci_t dsci, const uint8_t in);
+	uint8_t _lookup(const sci_t sci, const uint8_t lc, const sci_t dsci) const;
+	void table(const sci_t sci, const sci_t dsci, const uint8_t in, const uint8_t out);
+	void update(void);
+	void router(const sci_t _src, const sci_t _dst);
+public:
+	uint16_t shadow_rtbll[4096][7][256];
+	uint16_t shadow_rtblm[4096][7][256];
+	uint16_t shadow_rtblh[4096][7][256];
+	uint16_t shadow_ltbl[4096][7][256];
+
+	sci_t neigh(sci_t pos, const uint8_t lc) const;
+	uint8_t lookup(const sci_t sci, const uint8_t lc, const sci_t dsci) const;
+	Router(const sci_t sci);
+	void run(void);
+	void disable_node(const uint16_t sci);
+	void show_usage(void) const;
+};
 
 extern uint8_t dims[];
 

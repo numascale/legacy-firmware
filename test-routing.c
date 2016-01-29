@@ -28,53 +28,88 @@
 #include "dnc-route.h"
 
 uint8_t dims[] = {0, 1, 2};
-
-int cfg_nodes = 16;
+int cfg_nodes;
 struct fabric_info cfg_fabric;
 struct node_info *cfg_nodelist;
+bool test_manufacture = 0;
+static Router *routers[0x1000];
+
+void broadcast_error(const bool persistent, const char *format, ...)
+{
+	exit(1);
+}
+
+static void walk(const sci_t src, const sci_t dst)
+{
+	sci_t pos = src;
+	uint8_t lc = 0;
+	unsigned hops = 0;
+
+	printf("%03x to %03x:", src, dst);
+
+	while (1) {
+		printf(" %03x,%u", pos, lc);
+		lc = routers[pos]->lookup(pos, lc, dst);
+		printf(":%u", lc);
+		if (lc == 0)
+			break;
+
+		pos = routers[pos]->neigh(pos, lc);
+
+		if (hops++ > 48) {
+			printf("%03x > %03x cyclic\n", src, dst);
+			return;
+		}
+	};
+
+	printf("\n");
+}
 
 int main(int argc, char **argv)
 {
-	cfg_fabric.size[0] = 4;
-	cfg_fabric.size[1] = 4;
-	cfg_fabric.size[2] = 0;
+	cfg_fabric.size[0] = 3;
+	cfg_fabric.size[1] = 3;
+	cfg_fabric.size[2] = 2;
+	printf("%ux%ux%u fabric\n", cfg_fabric.size[0], cfg_fabric.size[1], cfg_fabric.size[2]);
 
-	cfg_nodelist = (struct node_info *) malloc(cfg_nodes * sizeof(struct node_info));
+	cfg_nodes = max(cfg_fabric.size[0], 1) * max(cfg_fabric.size[1], 1) * max(cfg_fabric.size[2], 1);
+	cfg_nodelist = (struct node_info *)malloc(cfg_nodes * sizeof(struct node_info));
+	assert(cfg_nodelist);
 
-	cfg_nodelist[0].sci = 0x000;
-	cfg_nodelist[1].sci = 0x001;
-	cfg_nodelist[2].sci = 0x002;
-	cfg_nodelist[3].sci = 0x003;
-	cfg_nodelist[4].sci = 0x010;
-	cfg_nodelist[5].sci = 0x011;
-	cfg_nodelist[6].sci = 0x012;
-	cfg_nodelist[7].sci = 0x013;
-	cfg_nodelist[8].sci = 0x020;
-	cfg_nodelist[9].sci = 0x021;
-	cfg_nodelist[10].sci = 0x022;
-	cfg_nodelist[11].sci = 0x023;
-	cfg_nodelist[12].sci = 0x030;
-	cfg_nodelist[13].sci = 0x031;
-	cfg_nodelist[14].sci = 0x032;
-	cfg_nodelist[15].sci = 0x033;
+	unsigned n = 0;
 
-	const char names[][4] = {"SIU", "XA", "XB", "YA", "YB", "ZA", "ZB", "ZB"};
-
-	for (int j = 0; j < cfg_nodes; j++) {
-		sci_t sci = cfg_nodelist[j].sci;
-		printf("-------------------------------\n");
-		for (int i = 0; i < cfg_nodes; i++) {
-			uint8_t out;
-			if (sci == cfg_nodelist[i].sci)
-				continue;
-
-			out = router0(sci, i);
-			printf("router 0 %03x routing to %03x via %s\n", sci, cfg_nodelist[i].sci, names[out]);
-//			out = router1(sci, i);
-//			printf("router 1 %03x routing to %03x via %s\n", sci, cfg_nodelist[i].sci, names[out]);
+	for (unsigned z = 0; z < max(cfg_fabric.size[2], 1); z++) {
+		for (unsigned y = 0; y < max(cfg_fabric.size[1], 1); y++) {
+			for (unsigned x = 0; x < max(cfg_fabric.size[0], 1); x++) {
+				const sci_t sci = SCI(x, y, z);
+				cfg_nodelist[n++].sci = sci;
+				printf("instantiating %03x\n", sci);
+				routers[sci] = new Router(sci);
+//				routers[sci]->disable_node(0x011);
+				routers[sci]->run();
+			}
 		}
-
 	}
 
+	for (unsigned z = 0; z < max(cfg_fabric.size[2], 1); z++)
+		for (unsigned y = 0; y < max(cfg_fabric.size[1], 1); y++)
+			for (unsigned x = 0; x < max(cfg_fabric.size[0], 1); x++)
+				routers[SCI(x,y,z)]->show_usage();
+	printf("\n");
+
+	for (unsigned sz = 0; sz < max(cfg_fabric.size[2], 1); sz++)
+		for (unsigned sy = 0; sy < max(cfg_fabric.size[1], 1); sy++)
+			for (unsigned sx = 0; sx < max(cfg_fabric.size[0], 1); sx++)
+				for (unsigned dz = 0; dz < max(cfg_fabric.size[2], 1); dz++)
+					for (unsigned dy = 0; dy < max(cfg_fabric.size[1], 1); dy++)
+						for (unsigned dx = 0; dx < max(cfg_fabric.size[0], 1); dx++)
+							walk(SCI(sx, sy, sz), SCI(dx, dy, dz));
+
+	for (unsigned z = 0; z < max(cfg_fabric.size[2], 1); z++)
+		for (unsigned y = 0; y < max(cfg_fabric.size[1], 1); y++)
+			for (unsigned x = 0; x < max(cfg_fabric.size[0], 1); x++)
+				delete routers[SCI(x,y,z)];
+
+	free(cfg_nodelist);
 	return 0;
 }
