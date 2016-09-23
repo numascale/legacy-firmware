@@ -75,6 +75,7 @@ bool mem_offline = 0;
 uint64_t trace_buf_size = 0;
 int verbose = 0;
 bool remote_io = 0;
+int remote_io_limit = 0;
 bool boot_wait = 0;
 static int dimmtest = 1;
 static bool workaround_hreq = 1;
@@ -2103,6 +2104,7 @@ void parse_cmdline(const int argc, const char *argv[])
 		{"trace-buf",       &parse_uint64, &trace_buf_size},
 		{"verbose",         &parse_int,    &verbose},
 		{"remote-io",       &parse_bool,   &remote_io},
+		{"remote-io-limit", &parse_int,    &remote_io_limit},
 		{"boot-wait",       &parse_bool,   &boot_wait},
 		{"dimmtest",        &parse_int,    &dimmtest},        /* Run on-board DIMM self test */
 		{"workaround.hreq", &parse_bool,   &workaround_hreq}, /* Enable half HReq buffers; on by default */

@@ -835,6 +835,10 @@ static void update_acpi_tables(void)
 		mcfg_allocation->start_bus_number = 0;
 		mcfg_allocation->end_bus_number = 255;
 		mcfg->len += sizeof(*mcfg_allocation);
+
+		// skip later nodes if requested
+		if (remote_io_limit && node == &nodes[remote_io_limit-1])
+			break;
 	}
 
 	mcfg->checksum = 0;

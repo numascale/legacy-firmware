@@ -231,6 +231,7 @@ extern bool enable_relfreq;
 extern bool singleton;
 extern bool handover_acpi;
 extern bool remote_io;
+extern int remote_io_limit;
 extern bool boot_wait;
 extern int family;
 extern uint32_t tsc_mhz;
