@@ -2182,8 +2182,10 @@ void parse_cmdline(const int argc, const char *argv[])
 		pf_cstate6 = 0;
 	}
 
-	if (fastboot)
+	if (fastboot) {
+		warning("Fastboot must not be used in production and disables remote-IO");
 		dimmtest = 0;
+	}
 }
 
 static void perform_selftest(void)
