@@ -1358,7 +1358,7 @@ void wake_core_global(const int apicid, const int vector)
 		cpu_relax();
 	}
 
-	assertf(i < CORE_LOOPS_MAX, "APIC 0x%x stuck in vector %d with status 0x%x", apicid, vector, *REL32(cpu_status));
+	assertf(i < CORE_LOOPS_MAX, "APIC 0x%x stuck in vector %d with status 0x%x; check DIMM health with dimmtest=2", apicid, vector, *REL32(cpu_status));
 }
 
 void wake_cores_local(const int vector)
