@@ -32,9 +32,6 @@
 #define roundup_pow2(x, y) ({uint64_t power = (y); while (power < (x)) power <<=1; power;})
 #define PRInode "node 0x%03x (%s)"
 #define nodestr_offset(x) cfg_nodelist[x].sci, cfg_nodelist[x].desc
-#define SCI(x,y,z) ((x) | ((y) << 4) | ((z) << 8))
-#define DEBUG_HARD 1
-#define debugf(l, ...) do { if (l <= DEBUG_HARD) printf(__VA_ARGS__); } while (0)
 
 #define COL_DEFAULT   "\033[0m"
 #define COL_RED       "\033[31m"

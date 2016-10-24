@@ -86,9 +86,7 @@ int disable_kvm = -1;
 bool test_manufacture = 0;
 int relaxed_io = 0;
 int pf_prefetch = 1;
-#ifdef LEGACY
 int router = 0;
-#endif
 int fastboot = 0;
 uint64_t io_limit = 0;
 bool io_nonpref_high = 1;
@@ -108,7 +106,6 @@ static struct dimm_config dimms[2]; /* 0 - MCTag, 1 - CData */
 static uint32_t southbridge_id = -1;
 static uint8_t smi_state;
 static uint64_t ioapic_vectors[IOAPIC_VECTORS];
-static Router *router = NULL;
 
 void *operator new(const size_t n)
 {
@@ -2118,9 +2115,7 @@ void parse_cmdline(const int argc, const char *argv[])
 		{"test.manufacture",&parse_bool,   &test_manufacture}, /* Manufacture testing */
 		{"relaxed-io",      &parse_int,    &relaxed_io},
 		{"pf.prefetch",     &parse_int,    &pf_prefetch},     /* DRAM prefetch */
-#ifdef LEGACY
 		{"router",          &parse_int,    &router},          /* Fabric routing algorithm */
-#endif
 		{"memlimit",        &parse_uint64, &max_mem_per_server}, /* Per-server memory limit */
 		{"fastboot",        &parse_int,    &fastboot},
 		{"io.limit",        &parse_uint64, &io_limit},        /* Limit of PCI BARs that will be allocated */
@@ -2853,7 +2848,6 @@ static void save_scc_routing(uint16_t rtbll[], uint16_t rtblm[], uint16_t rtblh[
 	}
 }
 
-#ifdef LEGACY
 static uint16_t shadow_rtbll[7][256];
 static uint16_t shadow_rtblm[7][256];
 static uint16_t shadow_rtblh[7][256];
@@ -2866,17 +2860,44 @@ static void _add_route(uint16_t dest, uint8_t bxbarid, uint8_t link)
 	uint16_t mask = 1 << (dest & 0xf);
 
 	assert(bxbarid != link);
-	if (bxbarid > 0) router->shadow_ltbl[bxbarid][offs] |= mask;
+	if (bxbarid > 0) shadow_ltbl[bxbarid][offs] |= mask;
 
-	router->shadow_rtbll[bxbarid][offs] |= ((link & 1) ? mask : 0);
-	router->shadow_rtblm[bxbarid][offs] |= ((link & 2) ? mask : 0);
-	router->shadow_rtblh[bxbarid][offs] |= ((link & 4) ? mask : 0);
+	shadow_rtbll[bxbarid][offs] |= ((link & 1) ? mask : 0);
+	shadow_rtblm[bxbarid][offs] |= ((link & 2) ? mask : 0);
+	shadow_rtblh[bxbarid][offs] |= ((link & 4) ? mask : 0);
 	/*    printf("add_route: ltbl[%d][%02x] = %04x\n", bxbarid, offs, shadow_ltbl[bxbarid][offs]); */
 	/*    printf("add_route: rtbll[%d][%02x] = %04x\n", bxbarid, offs, shadow_rtbll[bxbarid][offs]); */
 	/*    printf("add_route: rtblm[%d][%02x] = %04x\n", bxbarid, offs, shadow_rtblm[bxbarid][offs]); */
 	/*    printf("add_route: rtblh[%d][%02x] = %04x\n", bxbarid, offs, shadow_rtblh[bxbarid][offs]); */
 }
+
+#ifdef UNUSED
+static void test_route(uint8_t bxbarid, uint16_t dest)
+{
+	uint16_t offs = (dest >> 4) & 0xff;
+	uint16_t mask = 1 << (dest & 0xf);
+	uint8_t out = 0;
+	printf("Testing route on bxbarid %d to target ID %04x (offs=%02x, mask=%04x)\n", bxbarid, dest, offs, mask);
+
+	/*    printf("ltbl[%d][%02x] = %04x\n", bxbarid, offs, shadow_ltbl[bxbarid][offs]); */
+	/*    printf("rtbll[%d][%02x] = %04x\n", bxbarid, offs, shadow_rtbll[bxbarid][offs]); */
+	/*    printf("rtblm[%d][%02x] = %04x\n", bxbarid, offs, shadow_rtblm[bxbarid][offs]); */
+	/*    printf("rtblh[%d][%02x] = %04x\n", bxbarid, offs, shadow_rtblh[bxbarid][offs]); */
+	if (bxbarid > 0 && (shadow_ltbl[bxbarid][offs] & mask)) {
+		printf("bxbarid %d will pick up packet\n", bxbarid);
+		out += ((shadow_rtbll[bxbarid][offs] & mask) >> (dest & 0xf)) * 1;
+		out += ((shadow_rtblm[bxbarid][offs] & mask) >> (dest & 0xf)) * 2;
+		out += ((shadow_rtblh[bxbarid][offs] & mask) >> (dest & 0xf)) * 4;
+		printf("Packet will be routed to bxbarid %d\n", out);
+	} else if (bxbarid == 0) {
+		out += ((shadow_rtbll[bxbarid][offs] & mask) >> (dest & 0xf)) * 1;
+		out += ((shadow_rtblm[bxbarid][offs] & mask) >> (dest & 0xf)) * 2;
+		out += ((shadow_rtblh[bxbarid][offs] & mask) >> (dest & 0xf)) * 4;
+		printf("Packet will be routed to bxbarid %d\n", out);
+	}
+}
 #endif
+
 static bool _verify_save_id(const uint16_t nodeid, const int lc)
 {
 	const char *linkname = _get_linkname(lc);
@@ -2939,9 +2960,6 @@ struct lc {
 	uint32_t lc, size;
 };
 
-uint8_t dims[] = {0, 1, 2};
-
-#ifdef LEGACY
 static int shortest(const int node)
 {
 	Vector<struct lc> dims;
@@ -2976,6 +2994,8 @@ static int shortest(const int node)
 	return dims[index].lc;
 }
 
+uint8_t dims[] = {0, 1, 2};
+
 static void longest(void)
 {
 	uint8_t geom[] = {(uint8_t)cfg_fabric.size[0], (uint8_t)cfg_fabric.size[1], (uint8_t)cfg_fabric.size[2]};
@@ -2998,19 +3018,18 @@ static void longest(void)
 	const char names[] = "XYZ";
 	printf("Routing via %c->%c->%c\n", names[dims[0]], names[dims[1]], names[dims[2]]);
 }
-#endif
 
 static enum node_state setup_fabric(const struct node_info *info)
 {
+	int node;
 	dnc_write_csr(0xfff0, H2S_CSR_G0_NODE_IDS, info->sci << 16);
-#ifdef LEGACY
 	memset(shadow_ltbl, 0, sizeof(shadow_ltbl));
 	memset(shadow_rtbll, 0, sizeof(shadow_rtbll));
 	memset(shadow_rtblm, 0, sizeof(shadow_rtblm));
 	memset(shadow_rtblh, 0, sizeof(shadow_rtblh));
 
 	/* Find node number in list */
-	for (int node = 0; node < cfg_nodes; node++)
+	for (node = 0; node < cfg_nodes; node++)
 		if (info->sci == cfg_nodelist[node].sci)
 			break;
 
@@ -3040,42 +3059,8 @@ static enum node_state setup_fabric(const struct node_info *info)
 				_add_route(cfg_nodelist[i].sci, lc, out);
 		}
 	}
-#else
-	router = new Router(info->sci);
 
-	printf("Failed nodes:");
-	bool printed = 0;
-	for (int n = 0; n < cfg_nodes; n++) {
-		if (cfg_nodelist[n].failed) {
-			router->disable_node(cfg_nodelist[n].sci);
-			printf(" %03x/%s", cfg_nodelist[n].sci, cfg_nodelist[n].desc);
-			printed = 1;
-		}
-	}
-
-	if (printed)
-		printf("\n");
-	else
-		printf(" none\n");
-
-	router->run();
-
-	printf("Unavailable nodes:");
-	printed = 0;
-
-	for (int n = 0; n < cfg_nodes; n++) {
-		if (cfg_nodelist[n].unavailable) {
-			printf(" %03x/%s", cfg_nodelist[n].sci, cfg_nodelist[n].desc);
-			printed = 1;
-		}
-	}
-
-	if (printed)
-		printf("\n");
-	else
-		printf(" none\n");
-#endif
-	save_scc_routing(router->shadow_rtbll[info->sci][0], router->shadow_rtblm[info->sci][0], router->shadow_rtblh[info->sci][0]);
+	save_scc_routing(shadow_rtbll[0], shadow_rtblm[0], shadow_rtblh[0]);
 	/* Make sure all necessary links are up and working */
 	int res = 1;
 	printf("Initialising LC3s...");
@@ -3085,11 +3070,11 @@ static enum node_state setup_fabric(const struct node_info *info)
 			return RSP_FABRIC_NOT_READY;
 
 		res = (0 == dnc_init_lc3(info->sci, 0, dnc_asic_mode ? 16 : 1,
-		                         router->shadow_rtbll[info->sci][1], router->shadow_rtblm[info->sci][1],
-		                         router->shadow_rtblh[info->sci][1], router->shadow_ltbl[info->sci][1])) && res;
+		                         shadow_rtbll[1], shadow_rtblm[1],
+		                         shadow_rtblh[1], shadow_ltbl[1])) && res;
 		res = (0 == dnc_init_lc3(info->sci, 1, dnc_asic_mode ? 16 : 1,
-		                         router->shadow_rtbll[info->sci][2], router->shadow_rtblm[info->sci][2],
-		                         router->shadow_rtblh[info->sci][2], router->shadow_ltbl[info->sci][2])) && res;
+		                         shadow_rtbll[2], shadow_rtblm[2],
+		                         shadow_rtblh[2], shadow_ltbl[2])) && res;
 	}
 
 	if (cfg_fabric.size[1] > 0) {
@@ -3097,11 +3082,11 @@ static enum node_state setup_fabric(const struct node_info *info)
 			return RSP_FABRIC_NOT_READY;
 
 		res = (0 == dnc_init_lc3(info->sci, 2, dnc_asic_mode ? 16 : 1,
-		                         router->shadow_rtbll[info->sci][3], router->shadow_rtblm[info->sci][3],
-		                         router->shadow_rtblh[info->sci][3], router->shadow_ltbl[info->sci][3])) && res;
+		                         shadow_rtbll[3], shadow_rtblm[3],
+		                         shadow_rtblh[3], shadow_ltbl[3])) && res;
 		res = (0 == dnc_init_lc3(info->sci, 3, dnc_asic_mode ? 16 : 1,
-		                         router->shadow_rtbll[info->sci][4], router->shadow_rtblm[info->sci][4],
-		                         router->shadow_rtblh[info->sci][4], router->shadow_ltbl[info->sci][4])) && res;
+		                         shadow_rtbll[4], shadow_rtblm[4],
+		                         shadow_rtblh[4], shadow_ltbl[4])) && res;
 	}
 
 	if (cfg_fabric.size[2] > 0) {
@@ -3109,11 +3094,11 @@ static enum node_state setup_fabric(const struct node_info *info)
 			return RSP_FABRIC_NOT_READY;
 
 		res = (0 == dnc_init_lc3(info->sci, 4, dnc_asic_mode ? 16 : 1,
-		                         router->shadow_rtbll[info->sci][5], router->shadow_rtblm[info->sci][5],
-		                         router->shadow_rtblh[info->sci][5], router->shadow_ltbl[info->sci][5])) && res;
+		                         shadow_rtbll[5], shadow_rtblm[5],
+		                         shadow_rtblh[5], shadow_ltbl[5])) && res;
 		res = (0 == dnc_init_lc3(info->sci, 5, dnc_asic_mode ? 16 : 1,
-		                         router->shadow_rtbll[info->sci][6], router->shadow_rtblm[info->sci][6],
-		                         router->shadow_rtblh[info->sci][6], router->shadow_ltbl[info->sci][6])) && res;
+		                         shadow_rtbll[6], shadow_rtblm[6],
+		                         shadow_rtblh[6], shadow_ltbl[6])) && res;
 	}
 
 	printf("done\n");
@@ -3167,13 +3152,13 @@ bool dnc_check_fabric(const struct node_info *info)
 
 		if (_verify_save_id(info->sci, 0))
 			err |= dnc_init_lc3(info->sci, 0, dnc_asic_mode ? 16 : 1,
-			                         router->shadow_rtbll[info->sci][1], router->shadow_rtblm[info->sci][1],
-			                         router->shadow_rtblh[info->sci][1], router->shadow_ltbl[info->sci][1]);
+			                         shadow_rtbll[1], shadow_rtblm[1],
+			                         shadow_rtblh[1], shadow_ltbl[1]);
 
 		if (_verify_save_id(info->sci, 1))
 			err |= dnc_init_lc3(info->sci, 1, dnc_asic_mode ? 16 : 1,
-			                         router->shadow_rtbll[info->sci][2], router->shadow_rtblm[info->sci][2],
-			                         router->shadow_rtblh[info->sci][2], router->shadow_ltbl[info->sci][2]);
+			                         shadow_rtbll[2], shadow_rtblm[2],
+			                         shadow_rtblh[2], shadow_ltbl[2]);
 	}
 
 	if (cfg_fabric.size[1] > 0) {
@@ -3182,13 +3167,13 @@ bool dnc_check_fabric(const struct node_info *info)
 
 		if (_verify_save_id(info->sci, 2))
 			err |= dnc_init_lc3(info->sci, 2, dnc_asic_mode ? 16 : 1,
-			                         router->shadow_rtbll[info->sci][3], router->shadow_rtblm[info->sci][3],
-			                         router->shadow_rtblh[info->sci][3], router->shadow_ltbl[info->sci][3]);
+			                         shadow_rtbll[3], shadow_rtblm[3]
+			                         , shadow_rtblh[3], shadow_ltbl[3]);
 
 		if (_verify_save_id(info->sci, 3))
 			err |= dnc_init_lc3(info->sci, 3, dnc_asic_mode ? 16 : 1,
-			                         router->shadow_rtbll[info->sci][4], router->shadow_rtblm[info->sci][4],
-			                         router->shadow_rtblh[info->sci][4], router->shadow_ltbl[info->sci][4]);
+			                         shadow_rtbll[4], shadow_rtblm[4],
+			                         shadow_rtblh[4], shadow_ltbl[4]);
 	}
 
 	if (cfg_fabric.size[2] > 0) {
@@ -3197,13 +3182,13 @@ bool dnc_check_fabric(const struct node_info *info)
 
 		if (_verify_save_id(info->sci, 4))
 			err |= dnc_init_lc3(info->sci, 4, dnc_asic_mode ? 16 : 1,
-			                         router->shadow_rtbll[info->sci][5], router->shadow_rtblm[info->sci][5],
-			                         router->shadow_rtblh[info->sci][5], router->shadow_ltbl[info->sci][5]);
+			                         shadow_rtbll[5], shadow_rtblm[5],
+			                         shadow_rtblh[5], shadow_ltbl[5]);
 
 		if (_verify_save_id(info->sci, 5))
 			err |= dnc_init_lc3(info->sci, 5, dnc_asic_mode ? 16 : 1,
-			                         router->shadow_rtbll[info->sci][6], router->shadow_rtblm[info->sci][6],
-			                         router->shadow_rtblh[info->sci][6], router->shadow_ltbl[info->sci][6]);
+			                         shadow_rtbll[6], shadow_rtblm[6],
+			                         shadow_rtblh[6], shadow_ltbl[6]);
 	}
 
 	return err;
@@ -3512,22 +3497,19 @@ bool selftest_loopback(void)
 
 		for (int lc = 1; lc <= 6; lc++) {
 			printf("Testing %s...", _get_linkname(lc - 1));
-#ifdef LEGACY
 			memset(shadow_ltbl, 0, sizeof(shadow_ltbl));
 			memset(shadow_rtbll, 0, sizeof(shadow_rtbll));
 			memset(shadow_rtblm, 0, sizeof(shadow_rtblm));
 			memset(shadow_rtblh, 0, sizeof(shadow_rtblh));
-
 			_add_route(local_info->sci, 0, lc);
 			_add_route(local_info->sci, lc, 0);
 
-			save_scc_routing(router->shadow_rtbll[info->sci][0], router->shadow_rtblm[info->sci][0], router->shadow_rtblh[info->sci][0]);
+			save_scc_routing(shadow_rtbll[0], shadow_rtblm[0], shadow_rtblh[0]);
 
 			if (dnc_init_lc3(local_info->sci, lc-1, dnc_asic_mode ? 16 : 1,
-					 router->shadow_rtbll[lc], router->shadow_rtblm[lc],
-					 router->shadow_rtblh[lc], router->shadow_ltbl[lc]))
+					 shadow_rtbll[lc], shadow_rtblm[lc],
+					 shadow_rtblh[lc], shadow_ltbl[lc]))
 				return true;
-#endif
 
 			uint64_t errors = 0;
 			for (int loop = 0; loop < 200000; loop++) {
