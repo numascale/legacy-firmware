@@ -127,6 +127,11 @@ void operator delete(void *const p)
 	free(p);
 }
 
+void operator delete(void *const p, unsigned int)
+{
+	free(p);
+}
+
 /* Return string pointer using rotated static buffer to avoid heap */
 const char *pr_size(uint64_t val)
 {
