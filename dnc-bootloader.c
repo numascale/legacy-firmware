@@ -490,6 +490,9 @@ static void update_e820_map(void)
 
 	e820_add(under_ht_base, HT_LIMIT - under_ht_base, E820_RESERVED);
 
+	/* workaround BIOS bug which can corrupt higher area of memory due to incomplete SMM address mask */
+	e820_add(0x1003ff00000, 1 << 20, E820_RESERVED);
+
 	/* Note that linux will reserve any I/O window BARs; reserving it here causes GRUB issues  */
 
 	/* Reserve MCFG address range so Linux accepts it */
